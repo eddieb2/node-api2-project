@@ -2,14 +2,6 @@ const express = require('express');
 const router = express.Router();
 const Posts = require('../data/db');
 
-// FIXME
-// QUESTIONS HERE: >>
-// -File Structure?
-// -When should i use errorMessage vs message?
-// -When I enter an invalid post id my message doesn't show. (GET)
-// -For the 3rd GET did is that the appropriate status?
-// I don't understand how to console.log here at all.
-
 // NOTE 100% working.
 router.get('/', (req, res) => {
   Posts.find(req.query)
@@ -17,7 +9,7 @@ router.get('/', (req, res) => {
       res.status(200).json({ message: req.query, response });
     })
     .catch((err) => {
-      res.status(500).json({ message: 'Error retrieving the posts.' });
+      res.status(500).json({ errorMessage: err.message });
     });
 });
 
@@ -32,7 +24,7 @@ router.get('/:id', (req, res) => {
       }
     })
     .catch((err) => {
-      res.status(500).json({ errorMessage: 'Error retreiving the post.' });
+      res.status(500).json({ errorMessage: err.message });
     });
 });
 
@@ -52,7 +44,7 @@ router.get('/:id/comments', (req, res) => {
 });
 
 // NOTE 100% Working
-// ANCHOR >> Is it okay that I am returning the req.body to the client? When I had response there it was only returning the ID.
+// ANCHOR solved >> Is it okay that I am returning the req.body to the client? When I had response there it was only returning the ID.
 router.post('/', (req, res) => {
   if (req.body.title === '' || req.body.title === undefined) {
     res.status(400).json({
@@ -73,31 +65,37 @@ router.post('/', (req, res) => {
   }
 });
 
-// NOTE 75% Working
-// NEED TO FIGURE OUT HOW TO TELL IF ID
-// When the "post_id" is changed the comment gets stored at the appropriate post.
+// NOTE 100% Working
 router.post('/:id/comments', (req, res) => {
-  // console.log(Number(req.body.post_id));
-  // console.log(typeof req.body.post_id);
-
-  // Posts.findById(Number(req.body.post_id))
-
-  if (req.body.text === '' || req.body.text === undefined) {
-    res
-      .status(400)
-      .json({ errorMessage: 'Please provide text for the comment.' });
-  } else {
-    Posts.insertComment(req.body)
-      .then((response) => {
-        res.status(201).json(response);
-      })
-      .catch((err) => {
-        res.status(500).json({
-          error:
-            'There was an error while saving the comment to the database',
+  Posts.findById(req.body.post_id)
+    .then((response) => {
+      if (response.length > 0) {
+        if (req.body.text === '' || req.body.text === undefined) {
+          res.status(400).json({
+            errorMessage: 'Please provide text for the comment.',
+          });
+        } else {
+          Posts.insertComment(req.body)
+            .then((comment) => {
+              res.status(201).json(comment);
+            })
+            .catch((err) => {
+              res.status(500).json({
+                error:
+                  'There was an error while saving the comment to the database',
+                response,
+              });
+            });
+        }
+      } else {
+        res.status(404).json({
+          message: 'The post with the specified ID does not exist.',
         });
-      });
-  }
+      }
+    })
+    .catch((err) => {
+      res.status(500).json({ error: err.message });
+    });
 });
 
 // NOTE 100% Working.
