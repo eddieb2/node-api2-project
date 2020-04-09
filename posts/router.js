@@ -119,6 +119,7 @@ router.delete('/:id', (req, res) => {
     });
 });
 
+// NOTE 100% Working
 router.put('/:id', (req, res) => {
   const id = req.params.id;
   const title = req.body.title;
